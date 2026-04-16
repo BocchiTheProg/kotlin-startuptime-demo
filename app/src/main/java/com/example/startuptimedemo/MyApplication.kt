@@ -2,13 +2,20 @@ package com.example.startuptimedemo
 
 import android.app.Application
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MyApplication: Application() {
+    private val applicationScope = CoroutineScope(Dispatchers.Default)
     override fun onCreate(){
         super.onCreate()
 
-        // SIMULATION: Synchronous heavy initialization on the Main Thread
-        simulateHeavyThirdPartyInit()
+        // Optimization: Moving heavy initialization off the Main Thread.
+        // Allows the UI (MainActivity) to draw immediately while the SDK loads in the background.
+        applicationScope.launch {
+            simulateHeavyThirdPartyInit()
+        }
     }
 
     private fun simulateHeavyThirdPartyInit() {
