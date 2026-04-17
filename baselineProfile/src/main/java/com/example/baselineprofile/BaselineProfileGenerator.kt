@@ -2,8 +2,11 @@ package com.example.baselineprofile
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.filters.LargeTest
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,16 +47,36 @@ class BaselineProfileGenerator {
         rule.collect(
             packageName = InstrumentationRegistry.getArguments().getString("targetAppId")
                 ?: throw Exception("targetAppId not passed as instrumentation runner arg"),
-
-            // See: https://d.android.com/topic/performance/baselineprofiles/dex-layout-optimizations
             includeInStartupProfile = true
         ) {
-            // This block defines the app's critical user journey. Here we are interested in
-            // optimizing for app startup. But you can also navigate and scroll through your most important UI.
-
-            // Start default activity for your app
+            // Start default activity
             pressHome()
             startActivityAndWait()
+
+            // Wait for the main screen to render
+            // Looking for the content description set in MainActivity
+            device.wait(Until.hasObject(By.desc("main_scrollable_list")), 5000)
+
+            // Interact with the button
+            // Find the button via its semantics contentDescription
+            val counterButton = device.findObject(By.desc("counter_button"))
+            if (counterButton != null) {
+                // Click it a few times so it is recorded in the profile
+                counterButton.click()
+                device.waitForIdle()
+                counterButton.click()
+                device.waitForIdle()
+            }
+
+            // Scroll the list
+            val list = device.findObject(By.desc("main_scrollable_list"))
+            if (list != null) {
+                // Set gesture margins to avoid triggering system navigation gestures (like back swipes)
+                list.setGestureMargin(device.displayWidth / 5)
+                // Scroll down to ensure LazyColumn measuring and item rendering is compiled
+                list.scroll(Direction.DOWN, 1f)
+                device.waitForIdle()
+            }
         }
     }
 }
